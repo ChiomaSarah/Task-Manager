@@ -6,40 +6,49 @@ import {
 import { CreateTaskDto } from './dto/create-task.dto';
 import { UpdateTaskDto } from './dto/update-task.dto';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Task, TaskStatus } from './entities/task.entity';
+import { TaskEntity, TaskStatus } from './entities/task.entity';
 import { Repository } from 'typeorm';
+import { UserEntity } from 'src/user/entities/user.entity';
 
 @Injectable()
 export class TasksService {
-  constructor(@InjectRepository(Task) private repo: Repository<Task>) {}
+  constructor(
+    @InjectRepository(TaskEntity) private taskRepo: Repository<TaskEntity>,
+  ) {}
 
-  async createTask(createTaskDto: CreateTaskDto): Promise<Task> {
+  public async createTask(
+    createTaskDto: CreateTaskDto,
+    user: UserEntity,
+  ): Promise<TaskEntity> {
     try {
-      const data = this.repo.create({
+      const data = this.taskRepo.create({
         ...createTaskDto,
         status: TaskStatus.OPEN,
+        userId: user.id,
       });
-      return await this.repo.save(data);
+      return await this.taskRepo.save(data);
     } catch (error) {
       throw new BadRequestException({ message: error.message });
     }
   }
 
-  async getTasks(): Promise<Task[]> {
+  public async getTasks(user: UserEntity): Promise<TaskEntity[]> {
+    const query = this.taskRepo.createQueryBuilder('tasks');
+    query.where(`tasks.userId = :userId`, { userId: user.id });
     try {
-      return await this.repo.find();
+      return await query.getMany();
     } catch (error) {
       throw new BadRequestException({ message: error.message });
     }
   }
 
-  async getTask(id: string): Promise<Task> {
+  public async getTask(id: string, user: UserEntity): Promise<TaskEntity> {
     try {
-      const task = await this.repo.findOne({ where: { id } });
+      const task = await this.taskRepo.findOne({
+        where: { id, userId: user.id },
+      });
       if (!task) {
-        throw new NotFoundException({
-          message: 'Task not found',
-        });
+        throw new NotFoundException('Task not found');
       }
       return task;
     } catch (error) {
@@ -47,11 +56,17 @@ export class TasksService {
     }
   }
 
-  async updateTask(id: string, updateTaskDto: UpdateTaskDto): Promise<Task> {
+  public async updateTask(
+    id: string,
+    updateTaskDto: UpdateTaskDto,
+    user: UserEntity,
+  ): Promise<TaskEntity> {
     try {
-      await this.repo.update(id, updateTaskDto);
+      await this.taskRepo.update(id, updateTaskDto);
 
-      const updatedTask = await this.repo.findOne({ where: { id } });
+      const updatedTask = await this.taskRepo.findOne({
+        where: { id, userId: user.id },
+      });
       if (!updatedTask) {
         throw new NotFoundException({
           message: 'Task not found',
@@ -63,16 +78,21 @@ export class TasksService {
     }
   }
 
-  async deleteTask(id: string): Promise<Task> {
+  public async deleteTask(
+    id: string,
+    user: UserEntity,
+  ): Promise<{ message: string }> {
     try {
-      await this.repo.delete({ id });
-      const deletedTask = await this.repo.findOne({ where: { id } });
-      if (!deletedTask) {
+      const task = await this.taskRepo.findOne({
+        where: { id, userId: user.id },
+      });
+      if (!task) {
         throw new NotFoundException({
           message: `Sorry, the content you seek, was not found and may have been deleted.`,
         });
       }
-      return deletedTask;
+      await this.taskRepo.delete({ id });
+      return { message: 'Task Deleted successfully!' };
     } catch (error) {
       throw new BadRequestException({ message: error.message });
     }

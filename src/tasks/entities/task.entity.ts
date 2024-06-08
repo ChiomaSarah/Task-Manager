@@ -1,4 +1,4 @@
-import { User } from 'src/user/entities/user.entity';
+import { UserEntity } from 'src/user/entities/user.entity';
 import {
   Column,
   CreateDateColumn,
@@ -14,7 +14,7 @@ export enum TaskStatus {
 }
 
 @Entity('tasks')
-export class Task {
+export class TaskEntity {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
@@ -31,9 +31,15 @@ export class Task {
   })
   status: TaskStatus;
 
+  @Column('uuid')
+  userId: string;
+
   @CreateDateColumn({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
   createdOn: Date;
 
   @CreateDateColumn({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
   updatedOn: Date;
+
+  @ManyToOne(() => UserEntity, (user) => user.tasks)
+  user: UserEntity;
 }
