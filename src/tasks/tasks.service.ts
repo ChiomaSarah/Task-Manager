@@ -8,7 +8,7 @@ import { UpdateTaskDto } from './dto/update-task.dto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { TaskEntity, TaskStatus } from './entities/task.entity';
 import { Repository } from 'typeorm';
-import { UserEntity } from 'src/user/entities/user.entity';
+import { UserEntity } from '../user/entities/user.entity';
 
 @Injectable()
 export class TasksService {
@@ -52,7 +52,10 @@ export class TasksService {
       }
       return task;
     } catch (error) {
-      throw new BadRequestException({ message: error.message });
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
+      throw new BadRequestException('Failed to get task!');
     }
   }
 
@@ -61,20 +64,17 @@ export class TasksService {
     updateTaskDto: UpdateTaskDto,
     user: UserEntity,
   ): Promise<TaskEntity> {
+    const updatedTask = await this.taskRepo.findOne({
+      where: { id, userId: user.id },
+    });
+    if (!updatedTask) {
+      throw new NotFoundException('Task not found');
+    }
     try {
       await this.taskRepo.update(id, updateTaskDto);
-
-      const updatedTask = await this.taskRepo.findOne({
-        where: { id, userId: user.id },
-      });
-      if (!updatedTask) {
-        throw new NotFoundException({
-          message: 'Task not found',
-        });
-      }
       return updatedTask;
     } catch (error) {
-      throw new BadRequestException({ message: error.message });
+      throw new BadRequestException('Failed to update task!');
     }
   }
 
@@ -82,19 +82,17 @@ export class TasksService {
     id: string,
     user: UserEntity,
   ): Promise<{ message: string }> {
+    const task = await this.taskRepo.findOne({
+      where: { id, userId: user.id },
+    });
+    if (!task) {
+      throw new NotFoundException('Task not found!');
+    }
     try {
-      const task = await this.taskRepo.findOne({
-        where: { id, userId: user.id },
-      });
-      if (!task) {
-        throw new NotFoundException({
-          message: `Sorry, the content you seek, was not found and may have been deleted.`,
-        });
-      }
-      await this.taskRepo.delete({ id });
-      return { message: 'Task Deleted successfully!' };
+      await this.taskRepo.delete(id);
+      return { message: 'Task deleted successfully!' };
     } catch (error) {
-      throw new BadRequestException({ message: error.message });
+      throw new BadRequestException('Failed to delete task!');
     }
   }
 }

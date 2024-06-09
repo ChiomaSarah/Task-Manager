@@ -6,6 +6,7 @@ import { TasksModule } from './tasks/tasks.module';
 import { UserModule } from './user/user.module';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
+import { PassportModule } from '@nestjs/passport';
 
 @Module({
   imports: [
@@ -27,6 +28,7 @@ import { AppService } from './app.service';
         entities: [join(__dirname, '**', '*.entity{.ts,.js}')],
       }),
     }),
+    PassportModule.register({ defaultStrategy: 'jwt' }),
     TasksModule,
     UserModule,
   ],

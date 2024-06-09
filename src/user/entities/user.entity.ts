@@ -1,4 +1,4 @@
-import { TaskEntity } from 'src/tasks/entities/task.entity';
+import { TaskEntity } from '../../tasks/entities/task.entity';
 import { Column, Entity, OneToMany, PrimaryGeneratedColumn } from 'typeorm';
 
 @Entity('users')
@@ -16,10 +16,10 @@ export class UserEntity {
   password: string;
 
   @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
-  createdDate: Date;
+  createdOn: Date;
 
   @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
-  updatedDate: Date;
+  updatedOn: Date;
 
   @OneToMany(() => TaskEntity, (task) => task.user)
   tasks: TaskEntity[];
